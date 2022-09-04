@@ -1,11 +1,11 @@
 # README
 
-![architecture_diagram](diagram/game_application.png)
-
 ## Contents.
 - Local Development
 - Deploy to production
 - Appendix: Terraform code to build infrastructure
+
+![architecture_diagram](diagram/game_application.png)
 
 ## Let's get started with some preparation.
 1. Sign in to your project.
