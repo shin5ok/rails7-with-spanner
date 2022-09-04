@@ -144,7 +144,6 @@ resource "google_cloud_run_service" "user_api" {
     metadata {
       annotations = {
         "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.test.id
-        "run.googleapis.com/vpc-access-egress"    = "all-traffic"
       }
     }
   }
