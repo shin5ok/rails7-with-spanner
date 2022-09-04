@@ -1,0 +1,17 @@
+default: &default
+  adapter: "spanner"
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 10 } %>
+  project: <%= ENV.fetch("GOOGLE_CLOUD_PROJECT") %>
+  instance: test-instance
+  database: users
+
+development:
+  <<: *default
+  # instance: dev-instance
+
+# NOT use in this case
+# test:
+#   <<: *default
+
+production:
+  <<: *default
