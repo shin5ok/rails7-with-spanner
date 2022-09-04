@@ -12,3 +12,15 @@ variable "project" {
 variable "secret_data" {
   type = string
 }
+
+variable "region" {
+  type = string
+}
+
+variable "zone" {
+  type = string
+}
+
+variable "domain" {
+  type = string
+}

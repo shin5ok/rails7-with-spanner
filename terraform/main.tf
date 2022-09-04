@@ -10,8 +10,8 @@ terraform {
 
 provider "google" {
   project = var.project
-  region  = "asia-northeast1"
-  zone    = "asia-northeast1-a"
+  region  = var.region
+  zone    = var.zone
 }
 
 locals {
@@ -56,7 +56,7 @@ resource "google_compute_network" "game_vpc" {
 resource "google_compute_subnetwork" "tokyo" {
   name          = "tokyo"
   ip_cidr_range = "10.2.0.0/16"
-  region        = "asia-northeast1"
+  region        = var.region
   network       = google_compute_network.game_vpc.id
   secondary_ip_range {
     range_name    = "tokyo-ip-range"
@@ -79,7 +79,7 @@ resource "google_secret_manager_secret" "rails_master_key" {
 }
 
 resource "google_spanner_instance" "test_instance" {
-  config           = "regional-asia-northeast1"
+  config           = "regional-${var.region}"
   display_name     = "test-instance"
   processing_units = 100
   labels = {
@@ -101,13 +101,13 @@ resource "google_secret_manager_secret_version" "rails_master_key_data" {
 resource "google_redis_instance" "test_redis" {
   authorized_network      = google_compute_network.game_vpc.id
   connect_mode            = "DIRECT_PEERING"
-  location_id             = "asia-northeast1-b"
+  location_id             = var.zone
   memory_size_gb          = 1
   name                    = "test-redis"
   project                 = var.project
   read_replicas_mode      = "READ_REPLICAS_DISABLED"
   redis_version           = "REDIS_6_X"
-  region                  = "asia-northeast1"
+  region                  = var.region
   tier                    = "BASIC"
   transit_encryption_mode = "DISABLED"
 }
@@ -115,7 +115,7 @@ resource "google_redis_instance" "test_redis" {
 resource "google_vpc_access_connector" "test" {
   name           = "test"
   provider       = google-beta
-  region         = "asia-northeast1"
+  region         = var.region
   ip_cidr_range  = "10.8.0.0/28"
   max_throughput = 300
   network        = google_compute_network.game_vpc.name
@@ -125,7 +125,7 @@ resource "google_vpc_access_connector" "test" {
 resource "google_cloud_run_service" "user_api" {
   name     = "user-api"
   provider = google-beta
-  location = "asia-northeast1"
+  location = var.region
 
   template {
     spec {
@@ -151,7 +151,7 @@ resource "google_cloud_run_service" "user_api" {
   depends_on                 = [google_project_service.service]
 }
 
-resource "google_cloud_run_service_iam_binding" "binding" {
+resource "google_cloud_run_service_iam_binding" "run_iam_binding" {
   location = google_cloud_run_service.user_api.location
   project  = google_cloud_run_service.user_api.project
   service  = google_cloud_run_service.user_api.name
@@ -176,4 +176,61 @@ resource "google_secret_manager_secret_iam_member" "to_run_sa" {
   secret_id = google_secret_manager_secret.rails_master_key.id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.run_sa.email}"
+}
+
+resource "google_compute_region_network_endpoint_group" "run_neg" {
+  name                  = "run-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  cloud_run {
+    service = google_cloud_run_service.user_api.name
+  }
+}
+
+resource "google_compute_global_address" "reserved_ip" {
+  name = "reserverd-ip"
+}
+
+resource "google_compute_managed_ssl_certificate" "managed_cert" {
+  provider = google-beta
+
+  name = "managed-cert"
+  managed {
+    domains = ["${var.domain}"]
+  }
+}
+
+resource "google_compute_backend_service" "run_backend" {
+  name = "run-backend"
+
+  protocol    = "HTTP"
+  port_name   = "http"
+  timeout_sec = 30
+
+  backend {
+    group = google_compute_region_network_endpoint_group.run_neg.id
+  }
+}
+
+resource "google_compute_url_map" "run_url_map" {
+  name = "run-url-map"
+
+  default_service = google_compute_backend_service.run_backend.id
+}
+
+resource "google_compute_target_https_proxy" "run_https_proxy" {
+  name = "run-https-proxy"
+
+  url_map = google_compute_url_map.run_url_map.id
+  ssl_certificates = [
+    google_compute_managed_ssl_certificate.managed_cert.id
+  ]
+}
+
+resource "google_compute_global_forwarding_rule" "run_lb" {
+  name = "rub-lb"
+
+  target     = google_compute_target_https_proxy.run_https_proxy.id
+  port_range = "443"
+  ip_address = google_compute_global_address.reserved_ip.address
 }
