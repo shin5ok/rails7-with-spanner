@@ -1,4 +1,7 @@
 # README
+
+![architecture_diagram](diagram/game_application.png)
+
 ## Contents.
 - Local Development
 - Deploy to production
