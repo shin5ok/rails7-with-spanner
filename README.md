@@ -1,4 +1,5 @@
 # README
+
 ## Contents.
 - Local Development
 - Deploy to production
@@ -20,9 +21,18 @@ export PATH=$PATH:~/go/bin
 export GOOGLE_CLOUD_PROJECT=<your-project>
 ```
 
+4. Clone this code.
+```
+git clone https://github.com/shin5ok/rails7-with-spanner.git
+```
+
 ## Local development
 
-1. Prepare for local development
+1. Install Ruby 3.1.2 or higher.
+Consider using rbenv.
+You might need some utilities like Bundler.
+
+2. Prepare for local development.
 
 If you don't have profile for local, run it.
 ```
@@ -36,7 +46,7 @@ gcloud config set project your-project-id
 gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
 ```
 
-2. Run Cloud Spanner emulator and Redis
+3. Run Cloud Spanner emulator and Redis.
 ```
 docker compose up -d spanner redis
 ```
@@ -44,27 +54,34 @@ docker compose up -d spanner redis
 https://cloud.google.com/spanner/docs/emulator?hl=ja#limitations_and_differences
 - Notice: You might use old 'docker-compose' or 'docker'. Check if the version support some features we use.
 
-3. Set environment variable for the Cloud Spanner emulator
+4. Set environment variable for the Cloud Spanner emulator.
 ```
 export SPANNER_EMULATOR_HOST=localhost:9010
 export GOOGLE_CLOUD_PROJECT=your-project-id
 ```
 It wll make API calls of Spanner direct to local emulator.
 
-4. Create a Cloud Spanner instance in local emulator.
+5. Create a Cloud Spanner instance in local emulator.
 ```
 gcloud spanner instances create test-instance \
    --config=emulator-config --description="test Instance" --nodes=1
 ```
+6. Create database and migrate schemas with sample data.  
+Change directory to where the repository was cloned to.
 
-5. Create database and migrate schemas with sample data.
+Install libraries.
+```
+bundle install
+```
+
+Prepare databases.
 ```
 ./bin/rails db:create 
 ./bin/rails db:migrate
 ./bin/rails db:seed
 ```
 
-6. Make sure if the emulator work on local environment.
+7. Make sure if the emulator works on local environment.
 Login to the emulator.
 ```
 spanner-cli -i test-instance -p $GOOGLE_CLOUD_PROJECT -d users
@@ -77,7 +94,7 @@ select * from users;
 ```
 You can also confirm records through 'rails console'.
 
-7. Test it as local app.
+8. Test it as local app.
 Make sure environment variables you set before are existed.
 ```
 env
@@ -95,7 +112,7 @@ curl -H "Content-Type: application/json" -X POST localhost:3000/users -d '{"name
 curl -X DELETE localhost:3000/users/a909063e-2c25-11ed-9d6d-2bd2e05a2640
 ```
 
-8. Build a docker container for production.
+9. Build a docker container for production.
 ```
 docker build -t user-api .
 ```
@@ -218,3 +235,13 @@ gcloud beta run deploy user-api --allow-unauthenticated --region=asia-northeast1
 
 10. Congratulation!!  
 Just test it.
+
+## Use Terraform
+
+1. Prepare terraform the latest version.
+Follow this step to install/upgrade terraform.
+https://learn.hashicorp.com/tutorials/terraform/install-cli
+
+2. 
+
+3. 
