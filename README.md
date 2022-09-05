@@ -241,9 +241,22 @@ Just test it.
 ## Use Terraform
 
 1. Prepare terraform the latest version.
-Follow this step to install/upgrade terraform.
+Follow this step to install/upgrade terraform.  
 https://learn.hashicorp.com/tutorials/terraform/install-cli
 
-2. 
+2. [Option] Set variables before terraform execution.
+```
+export TF_VAR_project=<your project>
+export TF_VAR_gcs=<your GCS bucket for managing state>
+export TF_VAR_domain=<your domain that will be used to SSL Certification>
+export TF_VAR_secret_data=<expected master.key data>
+export TF_VAR_region=<your region>
+export TF_VAR_zone=<your zone>
+```
 
-3. 
+3. Run terraform.
+```
+cd terraform/
+terraform plan
+terraform apply
+```
