@@ -234,3 +234,28 @@ resource "google_compute_global_forwarding_rule" "run_lb" {
   port_range = "443"
   ip_address = google_compute_global_address.reserved_ip.address
 }
+
+resource "google_bigquery_dataset" "my_dataset" {
+  dataset_id                  = "my_dataset"
+  friendly_name               = "my_dataset"
+  location                    = "US"
+}
+
+resource "google_logging_project_sink" "logging_to_bq" {
+  name = "logging-to-bq"
+
+  destination = "bigquery.googleapis.com/projects/${var.project}/datasets/${google_bigquery_dataset.my_dataset.dataset_id}"
+
+  filter = "resource.type=\"cloud_run_revision\" AND httpRequest.requestMethod=\"GET\""
+
+  unique_writer_identity = true
+}
+
+resource "google_project_iam_binding" "log_writer" {
+  project = var.project
+  role    = "roles/bigquery.dataEditor"
+
+  members = [
+    google_logging_project_sink.logging_to_bq.writer_identity,
+  ]
+}
