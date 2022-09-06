@@ -185,10 +185,16 @@ resource "google_compute_region_network_endpoint_group" "run_neg" {
   cloud_run {
     service = google_cloud_run_service.user_api.name
   }
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_global_address" "reserved_ip" {
   name = "reserverd-ip"
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_managed_ssl_certificate" "managed_cert" {
@@ -198,6 +204,9 @@ resource "google_compute_managed_ssl_certificate" "managed_cert" {
   managed {
     domains = ["${var.domain}"]
   }
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_backend_service" "run_backend" {
@@ -210,12 +219,18 @@ resource "google_compute_backend_service" "run_backend" {
   backend {
     group = google_compute_region_network_endpoint_group.run_neg.id
   }
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_url_map" "run_url_map" {
   name = "run-url-map"
 
   default_service = google_compute_backend_service.run_backend.id
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_target_https_proxy" "run_https_proxy" {
@@ -225,6 +240,9 @@ resource "google_compute_target_https_proxy" "run_https_proxy" {
   ssl_certificates = [
     google_compute_managed_ssl_certificate.managed_cert.id
   ]
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_compute_global_forwarding_rule" "run_lb" {
@@ -233,6 +251,9 @@ resource "google_compute_global_forwarding_rule" "run_lb" {
   target     = google_compute_target_https_proxy.run_https_proxy.id
   port_range = "443"
   ip_address = google_compute_global_address.reserved_ip.address
+  depends_on = [
+    google_project_service.compute_service
+  ]
 }
 
 resource "google_bigquery_dataset" "my_dataset" {
