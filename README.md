@@ -3,6 +3,7 @@
 ## Contents.
 - Local Development
 - Deploy to production
+- Transfer logging to Google BigQuery
 - Appendix: Terraform code to build infrastructure
 
 ![architecture_diagram](diagram/diagrams_image.png)
@@ -237,6 +238,31 @@ gcloud beta run deploy user-api --allow-unauthenticated --region=asia-northeast1
 
 10. Congratulation!!  
 Just test it.
+
+## Transfer logging to Google BigQuery
+
+1. Create dataset as the destination of log.
+```
+bq mk --location asia-northeast1 dataset1
+```
+
+2. Create a Log Sink for BigQuery.
+```
+gcloud logging sinks create user-api-sink \
+bigquery.googleapis.com/projects/$GOOGLE_CLOUD_PROJECT/datasets/dataset1 \
+--description="for Cloud Run service 'user-api'" \
+--log-filter='resource.type="cloud_run_revision" AND resource.labels.configuration_name="user-api" AND jsonPayload.action!=""'
+```
+
+3. Grant permission for BigQuery dataEditor to the service account.
+```
+LOGSA=$(gcloud logging sinks describe user-api-sink --format=json | jq .writerIdentity -r)
+
+gcloud projects add-iam-policy-binding $PROJECT_ID --member=$LOGSA --role=roles/bigquery.dataEditor
+```
+
+That's all, you can access the api and you will see all logs in BigQuery tables.
+Maybe you need to wait for few minutes at the first time until Log Sink started.
 
 ## Use Terraform
 
