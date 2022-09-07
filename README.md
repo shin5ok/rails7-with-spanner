@@ -266,6 +266,10 @@ Maybe you need to wait for few minutes at the first time until Log Sink started.
 
 ## Use Terraform
 
+### Notice:
+- This code uses a demo container image GCP provided.
+- The logging filter for Log Sink in this code follows to the log format that the container app put out.
+
 1. Prepare terraform the latest version.
 Follow this step to install/upgrade terraform.  
 https://learn.hashicorp.com/tutorials/terraform/install-cli
