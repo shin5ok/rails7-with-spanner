@@ -253,6 +253,7 @@ export TF_VAR_secret_data=<expected master.key data>
 export TF_VAR_region=<your region>
 export TF_VAR_zone=<your zone>
 ```
+If you forgot to set some variables, terraform ask you what is the value of missing key.
 
 3. Run terraform.
 ```
