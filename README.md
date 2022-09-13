@@ -2,6 +2,7 @@
 
 ## Contents.
 - Local Development
+- Dockernize Rails7 application
 - Deploy to production
 - Transfer logging to Google BigQuery
 - Appendix: Terraform code to build infrastructure
@@ -13,6 +14,10 @@
 ```
 gcloud auth login
 gcloud auth application-default login
+```
+Or
+```
+gcloud auth login --update-adc
 ```
 2. Install spanner-cli
 ```
@@ -31,8 +36,10 @@ git clone https://github.com/shin5ok/rails7-with-spanner.git
 
 ## Local development
 
-1. Install Ruby 3.1.2 or higher.
-Consider using rbenv.
+![local](diagram/rails7-as-local.png)
+
+1. Install Ruby 3.1.2 or higher.  
+Consider using rbenv.  
 You might need some utilities like Bundler.
 
 2. Prepare for local development.
@@ -53,9 +60,10 @@ gcloud config set api_endpoint_overrides/spanner http://localhost:9020/
 ```
 docker compose up -d spanner redis
 ```
-- See here to understand the limitation of Cloud Spanner emulator.
+- See here to understand the limitation of Cloud Spanner emulator.  
 https://cloud.google.com/spanner/docs/emulator?hl=ja#limitations_and_differences
-- Notice: You might use old 'docker-compose' or 'docker'. Check if the version support some features we use.
+- Notice: You might use old 'docker-compose' or 'docker'.  
+Check if the version support some features we use.
 
 4. Set environment variable for the Cloud Spanner emulator.
 ```
@@ -70,7 +78,10 @@ gcloud spanner instances create test-instance \
    --config=emulator-config --description="test Instance" --nodes=1
 ```
 6. Create database and migrate schemas with sample data.  
-Change directory to where the repository was cloned to.
+Make sure that you are where the repository was cloned to.
+```
+cd your-cloned-directory/
+```
 
 Install libraries.
 ```
@@ -115,16 +126,21 @@ curl -H "Content-Type: application/json" -X POST localhost:3000/users -d '{"name
 curl -X DELETE localhost:3000/users/a909063e-2c25-11ed-9d6d-2bd2e05a2640
 ```
 
+## Dockernize Rails7 application
+
+![dokernize_rails7_app](diagram/rails7-as-docker.png)
+
 9. Build a docker container for production.
 ```
 docker build -t user-api .
 ```
 
-10. Run the docker container with enabling cache.
+10. Run the docker container with enabling cache.  
+Connecting it to the network that was prepared for Redis container previously would be important.
 ```
 docker run -it -p 3000:3000 -e REDIS_HOST=redis -e SPANNER_EMULATOR_HOST=spanner:9010 -e RAILS_MASTER_KEY=$(cat ./config/master.key) -e GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT --network=user_api_network user-api
 ```
-And then, test it.
+And then, test it.  
 When you want to terminate it, just Ctrl + C.
 
 11. Completion as local development, the app looks like working well.
@@ -173,7 +189,7 @@ cat ./config/master.key | gcloud secrets create RAILS_MASTER_KEY --data-file=-
 gcloud spanner instances create --nodes=1 test-instance --description="for test/production" --config=regional-asia-northeast1
 ```
 
-6. create database, schema etc.
+6. Create database, schema etc.  
 Run some command as below,
 ```
 ./bin/rails db:create RAILS_ENV=production
@@ -261,8 +277,8 @@ LOGSA=$(gcloud logging sinks describe user-api-sink --format=json | jq .writerId
 gcloud projects add-iam-policy-binding $PROJECT_ID --member=$LOGSA --role=roles/bigquery.dataEditor
 ```
 
-That's all, you can access the api and you will see all logs in BigQuery tables.
-Maybe you need to wait for few minutes at the first time until Log Sink started.
+That's all, you can access the api and you will see all logs in BigQuery tables.  
+Maybe you need to wait for a few minutes at the first time until Log Sink started.
 
 ## Use Terraform
 
@@ -283,7 +299,7 @@ export TF_VAR_secret_data=<expected master.key data>
 export TF_VAR_region=<your region>
 export TF_VAR_zone=<your zone>
 ```
-If you forgot to set some variables, terraform will ask you what is the value of missing ones.
+If you forgot to set some variables, terraform will ask you what is the value of missing ones when it was invoked.
 
 3. Run terraform.
 ```
