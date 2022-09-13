@@ -5,6 +5,7 @@
 - Dockernize Rails7 application
 - Deploy to production
 - Transfer logging to Google BigQuery
+- Appendix: Attach Google Cloud Load Balancer with Google Managed certificate
 - Appendix: Terraform code to build infrastructure
 
 ![architecture_diagram](diagram/diagrams_image.png)
@@ -204,7 +205,7 @@ spanner-cli -i test-instance -p $GOOGLE_CLOUD_PROJECT -d users
 5. Create a VPC for Redis.
 ```
 gcloud compute networks create my-network --subnet-mode=custom
-gcloud compute networks subnets create --network=my-network --region=asia-northeast1 --range=10.0.0.0/16
+gcloud compute networks subnets create --network=my-network --region=asia-northeast1 --range=10.0.0.0/16 tokyo
 ```
 
 6. Prepare a Redis host as Memotystore for Redis.
@@ -230,7 +231,6 @@ docker push $IMAGE
 
 9. Configure a Serverless Access Connector.
 ```
-gcloud services enable vpcaccess.googleapis.com
 gcloud compute networks vpc-access connectors create user-api-vpc-access --network my-network --region asia-northeast1 --range 10.8.0.0/28
 ```
 Add IAM policies to service account for Cloud Run.
@@ -239,7 +239,12 @@ gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT --member=serviceAcc
 gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT --member=serviceAccount:$SA --role=roles/vpcaccess.user
 ```
 
-9. Deploy a Cloud Run service.
+10. Add an IAM policy for the secret for Cloud Run.
+```
+gcloud secrets add-iam-policy-binding RAILS_MASTER_KEY --member=serviceAccount:$SA --role=roles/secretmanager.secretAccessor
+```
+
+11. Deploy a Cloud Run service.
 ```
 VA=projects/$GOOGLE_CLOUD_PROJECT/locations/asia-northeast1/connectors/user-api-vpc-access
 REDIS_HOST=$(gcloud redis instances describe test-redis --region=asia-northeast1 --format=json | jq .host -r)
@@ -252,8 +257,9 @@ gcloud beta run deploy user-api --allow-unauthenticated --region=asia-northeast1
 --min-instances=2 --cpu=2 --memory=2Gi
 ```
 
-10. Congratulation!!  
+12. Congratulation!!  
 Just test it.
+
 
 ## Transfer logging to Google BigQuery
 
@@ -280,11 +286,83 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member=$LOGSA --role=roles/
 That's all, you can access the api and you will see all logs in BigQuery tables.  
 Maybe you need to wait for a few minutes at the first time until Log Sink started.
 
-## Use Terraform
+## Appendix: Attach Google Cloud Load Balancer with Google Managed certificate
+
+1. Reserve your external IP address.
+```
+gcloud compute addresses create user-api-ip \
+    --network-tier=PREMIUM \
+    --ip-version=IPV4 \
+    --global
+```
+
+2. Create a Serverless NEG.
+```
+gcloud compute network-endpoint-groups create user-api \
+    --region=asia-northeast1 \
+    --network-endpoint-type=serverless  \
+    --cloud-run-service=user-api
+```
+
+3. Create a Backend service. 
+```
+gcloud compute backend-services create backend-for-user-api \
+    --load-balancing-scheme=EXTERNAL \
+    --global
+```
+And register the Serverless NEG to it.
+```
+gcloud compute backend-services add-backend backend-for-user-api \
+    --global \
+    --network-endpoint-group=user-api \
+    --network-endpoint-group-region=asia-northeast1
+```
+
+4. Create a Urlmap.
+```
+gcloud compute url-maps create urlmap-for-user-api \
+   --default-service backend-for-user-api
+```
+
+5. Create a Google managed SSL Certificate.
+```
+FQDN=<your FQDN you want to use>
+gcloud compute ssl-certificates create ssl-cert-for-user-api \
+   --domains $FQDN
+```
+
+6. Create a Target Proxy.
+```
+gcloud compute target-https-proxies create target-proxy-for-user-api \
+   --ssl-certificates=ssl-cert-for-user-api \
+   --url-map=urlmap-for-user-api
+```
+7. Configure a forwarding rule to user-api.
+```
+gcloud compute forwarding-rules create forwarding-to-user-api \
+    --load-balancing-scheme=EXTERNAL \
+    --network-tier=PREMIUM \
+    --address=user-api-ip \
+    --target-https-proxy=target-proxy-for-user-api \
+    --global \
+    --ports=443
+```
+
+8. Update DNS record.  
+Find the IP address your Load Balancer uses.
+```
+gcloud compute addresses describe user-api-ip --global --format=json | jq .address -r
+```
+You need to register this IP address corresponding to your FQDN record.  
+It depends on the way to manage your DNS.
+
+
+## Appendix: Terraform code to build infrastructure
 
 ### Notice:
 - This code uses a demo container image GCP provided.
 - The logging filter for Log Sink in this code follows to the log format that the container app put out.
+- Some component names are different from above procedures.
 
 1. Prepare terraform the latest version.
 Follow this step to install/upgrade terraform.  
