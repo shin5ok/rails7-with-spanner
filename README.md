@@ -5,7 +5,7 @@
 - Dockernize Rails7 application
 - Deploy to production
 - Transfer logging to Google BigQuery
-- Appendix: Attach Google Cloud Load Balancer with Google Managed certificate
+- Appendix: Attach Google Cloud Load Balancer with Google Managed SSL certificate
 - Appendix: Terraform code to build infrastructure
 
 ![architecture_diagram](diagram/diagrams_image.png)
@@ -286,7 +286,7 @@ gcloud projects add-iam-policy-binding $PROJECT_ID --member=$LOGSA --role=roles/
 That's all, you can access the api and you will see all logs in BigQuery tables.  
 Maybe you need to wait for a few minutes at the first time until Log Sink started.
 
-## Appendix: Attach Google Cloud Load Balancer with Google Managed certificate
+## Appendix: Attach Google Cloud Load Balancer with Google Managed SSL certificate
 
 1. Reserve your external IP address.
 ```
