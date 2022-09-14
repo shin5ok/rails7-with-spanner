@@ -68,6 +68,7 @@ Check if the version support some features we use.
 
 4. Set environment variable for the Cloud Spanner emulator.
 ```
+PRODUCTION_PROJECT=$GOOGLE_CLOUD_PROJECT
 export SPANNER_EMULATOR_HOST=localhost:9010
 export GOOGLE_CLOUD_PROJECT=your-project-id
 ```
@@ -156,7 +157,8 @@ See [link](https://cloud.google.com/code/docs/vscode/develop-service).
 
 1. Switch profile to actual project from local development.
 ```
-gclound config configuration activate rails-app
+gcloud config configuration create rails-app
+gcloud confg set project $PRODUCTION_PROJECT
 ```
 Run this command in your shell, just in case.
 ```
