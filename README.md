@@ -147,6 +147,11 @@ When you want to terminate it, just Ctrl + C.
 11. Completion as local development, the app looks like working well.
 
 
+## [Option] If you use VSCode, you can consider Cloud Code for Cloud Run.  
+It provides you with local development environments.  
+See [link](https://cloud.google.com/code/docs/vscode/develop-service).
+
+
 ## Deploy the app to Google Cloud
 
 1. Switch profile to actual project from local development.
