@@ -16,10 +16,6 @@
 gcloud auth login
 gcloud auth application-default login
 ```
-Or
-```
-gcloud auth login --update-adc
-```
 2. Install spanner-cli
 ```
 go install github.com/cloudspannerecosystem/spanner-cli@latest
