@@ -1,5 +1,5 @@
 init:
-	@echo "Prepareing environment of terraform to init"
+	@echo "Preparing environment of terraform to init"
 	terraform init
 	terraform providers lock \
 		-platform=linux_amd64  \
